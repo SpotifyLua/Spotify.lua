@@ -1243,18 +1243,81 @@ local poll_generation = 0
 local polling = false
 local last_poll_error = nil
 
-local POLL_PLAYING = 3.0
-local POLL_IDLE    = 10.0
+-- Development mode apps draw on a QUOTA, which Spotify counts per developer
+-- account across every app that account owns and groups into endpoint buckets.
+-- Every /v1/me/player call lands in one bucket. It is a separate mechanism from
+-- the rolling 30-second rate limit, which is why a few requests a minute can
+-- still be refused with QUOTA_EXCEEDED, and why making a second app under the
+-- same account does nothing at all.
+--
+-- Nobody using this script will ever leave development mode: extended quota is
+-- organisations only, 250k monthly users minimum, since May 2025. So the number
+-- of player requests is the only lever that exists.
+--
+-- A flat 3s interval spent about 70 requests on a three-and-a-half minute
+-- track, essentially all of them confirming nothing had changed. Instead:
+-- cruise through the middle of a track, and tighten only around the moment it
+-- is about to end, which is the one instant a poll is actually informative.
+-- Same track, about 24 requests, and the track change is picked up FASTER than
+-- before, because 2s at the boundary beats the old flat 3s.
+--
+-- The cost is that something done on another device -- skipping from your phone
+-- -- can take up to a cruise interval to appear. Anything done from this script
+-- updates locally at once and never waits for a poll.
+--
+-- Grouped in a table rather than kept as four locals: the chunk sits at the
+-- 200-local ceiling.
+local POLL = {
+    cruise = 10.0,          -- mid-track
+    edge = 2.0,             -- approaching the end of a track
+    idle = 15.0,            -- paused, or nothing playing at all
+    edge_window_ms = 6000,  -- how early to switch to the edge rate
+}
 
 -- Extra seconds added to the poll interval after Spotify pushes back. The
 -- network API hands us only a response body, so the `Retry-After` header is not
 -- visible; the interval doubles instead, and the first success clears it.
 --
--- Normal use is nowhere near the limit â€” one request every 3 seconds against a
--- rolling 30-second window â€” but a script reload leaves the old chain running
--- for a moment, and several reloads in a row can stack up enough to trip it.
+-- The cap used to be 60s, on the assumption that a limit we tripped ourselves
+-- would clear in about that long. That assumption was wrong. Spotify's limit is
+-- per APPLICATION, not per user: everyone sharing a Client ID draws on one
+-- budget, apps in development mode get a small one, and once tripped the block
+-- refuses every request under that ID until its own cooldown expires. Measured
+-- live: three requests in sixty seconds, still answered "Too many requests".
+--
+-- So a 60s cap does the worst possible thing. It cannot outlast the block, and
+-- each probe spends from the budget it is waiting on. Escalating to five
+-- minutes keeps recovery from a genuine blip quick — the first few steps are
+-- unchanged — while a real block costs a handful of requests instead of thirty
+-- an hour. Toggling the player off and on resets it immediately for anyone not
+-- willing to wait.
 local poll_penalty = 0
-local POLL_PENALTY_MAX = 60
+local POLL_PENALTY_MAX = 300
+
+-- Timestamps of recent /me/player requests, kept so a 429 can report the rate
+-- that actually earned it instead of the rate we intended.
+--
+-- This exists because a run of 429s on light use looked like a bug in here, and
+-- the old message discarded every piece of evidence that could have said
+-- otherwise. Spotify's limit is per APPLICATION, not per user: everyone sharing
+-- a Client ID spends from one budget, and apps still in development mode get a
+-- much smaller one. A count near 20 per minute here means this script is inside
+-- its intended rate and the limit was earned somewhere else.
+-- On `session` rather than as two file locals: the chunk is at the 200-local
+-- ceiling and adding a pair here pushed it over.
+session.poll_times = {}
+
+function session.note_poll()
+    local now = common.get_timestamp()
+    local keep = { now }
+
+    for _, at in ipairs(session.poll_times) do
+        if now - at <= 60000 then keep[#keep + 1] = at end
+    end
+
+    session.poll_times = keep
+    return #keep
+end
 
 -- `once` fetches without re-arming.
 --
@@ -1268,6 +1331,8 @@ local function poll_once(generation, once)
 
     with_token(function()
         if generation ~= poll_generation then return end
+
+        session.note_poll()
 
         network.get("https://api.spotify.com/v1/me/player",
             { Authorization = "Bearer " .. session.access_token },
@@ -1289,16 +1354,39 @@ local function poll_once(generation, once)
                 end
 
                 if state.error then
-                    local status = (type(state.error) == "table")
-                        and tonumber(state.error.status) or nil
+                    local err = (type(state.error) == "table") and state.error or {}
+                    local status = tonumber(err.status)
 
                     if status == 429 then
                         poll_penalty = math.min(
                             (poll_penalty > 0) and (poll_penalty * 2) or 5,
                             POLL_PENALTY_MAX)
-                        last_poll_error = "rate limited, polling more slowly"
+
+                        -- `reason` separates the two quite different things
+                        -- Spotify answers 429 for, and the message text is
+                        -- identical for both. QUOTA_EXCEEDED is the development
+                        -- mode quota: counted per DEVELOPER ACCOUNT across every
+                        -- app that account owns, grouped into endpoint buckets,
+                        -- and not something a second app or a quieter thirty
+                        -- seconds can do anything about. A bare 429 is the
+                        -- rolling rate limit, which backing off genuinely fixes.
+                        local quota = (err.reason == "QUOTA_EXCEEDED")
+
+                        -- Drawn in the panel, not just logged. A quota block
+                        -- otherwise looks exactly like nothing playing, which is
+                        -- how an evening gets spent hunting a rendering bug that
+                        -- was never there.
+                        last_poll_error = quota
+                            and "Spotify quota reached, retrying"
+                            or "Spotify is rate limiting, retrying"
+
                         log("rate limited by Spotify, backing off to "
                             .. poll_penalty .. "s")
+
+                        log(("  %d requests from here in the last 60s | Spotify: %s / %s")
+                            :format(#session.poll_times,
+                                tostring(err.message or "no message"),
+                                tostring(err.reason or "no reason given")))
 
                     elseif status == 401 then
                         -- The access token died early, or was revoked. Dropping
@@ -1322,11 +1410,30 @@ local function poll_once(generation, once)
 
     if once then return end
 
-    local delay = (player.ok and player.is_playing) and POLL_PLAYING or POLL_IDLE
+    local delay
 
-    -- Nothing is playing and nobody is looking: the menu bar only draws with the
-    -- menu open, and the HUD player hides itself in the main menu. Polling hard
-    -- through that is what builds toward a rate limit in the first place.
+    if not (player.ok and player.is_playing) then
+        -- Paused, or nothing playing. Nothing can change here except someone
+        -- pressing play on another device.
+        delay = POLL.idle
+    elseif player.duration_ms <= 0 then
+        -- No duration to reason about, so there is no boundary to aim at.
+        delay = POLL.cruise
+    else
+        local remaining = player.duration_ms - current_progress()
+
+        if remaining <= POLL.edge_window_ms then
+            delay = POLL.edge
+        else
+            -- Deliberately land just inside the edge window rather than
+            -- overshooting it. Cruising blindly would routinely step straight
+            -- over a track change and report it a full interval late, which is
+            -- the failure that makes slow polling feel broken.
+            delay = math.min(POLL.cruise, (remaining - POLL.edge_window_ms) / 1000)
+            delay = math.max(delay, POLL.edge)
+        end
+    end
+
     if poll_penalty > 0 then
         delay = math.max(delay, poll_penalty)
     end
@@ -1344,7 +1451,8 @@ local function set_polling(on)
         -- back, with nothing on screen to say why.
         poll_penalty = 0
 
-        log("polling every " .. POLL_PLAYING .. "s while playing", true)
+        log(("polling every %ss, %ss near a track change")
+            :format(POLL.cruise, POLL.edge), true)
         poll_once(poll_generation)
     else
         player.ok = false
@@ -2955,9 +3063,24 @@ local function idle_message()
     if not is_connected() then
         return "Authenticate Spotify in the menu"
     end
+
+    -- Only while actually backing off. Gating on the penalty rather than on the
+    -- error alone means a single failed poll cannot flash a message over a track
+    -- that is playing perfectly well, while a real block — which always carries
+    -- a penalty — says so immediately.
+    --
+    -- This deliberately takes precedence over player.ok. Being blocked partway
+    -- through a track otherwise leaves the last known track on screen with its
+    -- progress bar running off the end, which is worse than saying nothing:
+    -- it looks like it still works.
+    if poll_penalty > 0 and last_poll_error ~= nil then
+        return last_poll_error
+    end
+
     if not player.ok then
         return "Nothing playing"
     end
+
     return nil
 end
 
@@ -3567,14 +3690,37 @@ UI.bar_enable:set_callback(function(item)
     set_polling(item:get() or UI.opt_enable:get())
 end)
 
-refresh_visibility()
+-- Callbacks fire on interaction and nothing else. Neither script load nor a
+-- config switch fires them, so anything derived from a menu value has to be
+-- recomputed by hand or it silently goes stale.
+local function sync_from_menu()
+    refresh_visibility()
 
--- Callbacks fire on interaction, not on load. A config that restores these
--- switches to "on" would otherwise never start polling, so player.ok would stay
--- false and nothing would ever draw.
-if UI.opt_enable:get() or UI.bar_enable:get() then
-    set_polling(true)
+    local wanted = UI.opt_enable:get() or UI.bar_enable:get()
+
+    -- Only on an actual change. set_polling bumps the generation every call,
+    -- so re-asserting the state it is already in would abandon the running
+    -- chain and start a fresh one -- and a config switch landing mid-request
+    -- would leave that in-flight callback writing into a generation nothing
+    -- reads any more.
+    if wanted ~= polling then
+        set_polling(wanted)
+    end
 end
+
+sync_from_menu()
+
+-- Switching Neverlose configs restores every menu value without firing a
+-- single callback, and without re-running this chunk. Without this hook the
+-- player just stops: the switches still read "on", auth still reports
+-- connected because it lives in db rather than in the config, and yet nothing
+-- polls, so player.ok stays false and nothing draws. Reported from a live
+-- session -- changed config, changed back, empty player, "authed".
+events.config_state:set(function(state)
+    if state == "post_load" then
+        sync_from_menu()
+    end
+end)
 
 --------------------------------------------------------------------------------
 -- theme
