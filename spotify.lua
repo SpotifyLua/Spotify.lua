@@ -1,5 +1,5 @@
 --[[
-    Spotify for Neverlose Ã¢â‚¬â€ authentication
+    Spotify for Neverlose ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â authentication
 
     Phase 2. Everything here rests on results proven in phases 0 and 1:
 
@@ -47,7 +47,7 @@ local SCOPES = table.concat({
 
 -- No Client ID ships with this script, deliberately. Spotify Development Mode
 -- allows five authenticated users per app, so a shared one would be exhausted
--- by the first five strangers who installed it. Everyone registers their own â€”
+-- by the first five strangers who installed it. Everyone registers their own Ã¢â‚¬â€
 -- see the Auth tab.
 
 --------------------------------------------------------------------------------
@@ -65,7 +65,7 @@ local UI = {}
 -- Console only. The on-screen debug panel was useful while probing and is just
 -- clutter now.
 --
--- Pass `verbose` for routine chatter — poll cycles, token refreshes, clantag
+-- Pass `verbose` for routine chatter â€” poll cycles, token refreshes, clantag
 -- frames, font probing. That is wanted while something is being diagnosed and
 -- is noise the rest of the time, so it sits behind the Debug logging switch.
 -- Anything the user needs to see, failures above all, logs plainly.
@@ -84,7 +84,7 @@ end
 -- Resolves a combo to its label without relying on the API at all.
 --
 -- The previous attempt went through item:list(), and when that returns nothing
--- useful the fallback was tostring(index) â€” a value that matches no branch, so
+-- useful the fallback was tostring(index) Ã¢â‚¬â€ a value that matches no branch, so
 -- every comparison silently failed and the default won. Passing the option
 -- table in means the only thing we need from the API is a number or a string,
 -- and both are handled.
@@ -95,7 +95,7 @@ end
 --
 -- This matters because the sidebar name is animated per character, and a combo
 -- option carrying the same text ("spotify.lua") comes back wearing that
--- animation â€” 110 bytes of escapes instead of 11 plain ones. Comparing it to a
+-- animation Ã¢â‚¬â€ 110 bytes of escapes instead of 11 plain ones. Comparing it to a
 -- plain literal then fails forever, silently.
 local function strip_colours(text)
     if type(text) ~= "string" then return text end
@@ -124,7 +124,7 @@ local function combo_label(item, options)
 end
 
 --------------------------------------------------------------------------------
--- PKCE  (verified against FIPS 180-4, RFC 4648 and RFC 7636 Ã¢â‚¬â€ see lua/pkce.lua)
+-- PKCE  (verified against FIPS 180-4, RFC 4648 and RFC 7636 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â see lua/pkce.lua)
 --------------------------------------------------------------------------------
 
 local band, bor, bxor, bnot = bit.band, bit.bor, bit.bxor, bit.bnot
@@ -377,12 +377,12 @@ end
 local function start_listener()
     if listening then return true end
     if pump_disabled then
-        log("pump disabled by an earlier error Ã¢â‚¬â€ reload the script")
+        log("pump disabled by an earlier error ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â reload the script")
         return false, "The listener is disabled.", "Reload the script."
     end
 
     if not pcall(ffi.new, "fd_set_t") or not pcall(ffi.new, "struct timeval_t") then
-        log("poll types unavailable Ã¢â‚¬â€ refusing to open a socket we can't poll")
+        log("poll types unavailable ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â refusing to open a socket we can't poll")
         return false, "Cannot poll a socket here.", "FFI types are unavailable."
     end
 
@@ -395,7 +395,7 @@ local function start_listener()
     end
 
     if not pcall(function() return ws2.select end) then
-        log("select() unavailable Ã¢â‚¬â€ refusing to open a socket we can't poll")
+        log("select() unavailable ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â refusing to open a socket we can't poll")
         return false, "Cannot poll a socket here.", "select() is unavailable."
     end
 
@@ -455,8 +455,8 @@ local function parse_query(path)
     for key, value in query:gmatch("([^&=?]+)=([^&=?]*)") do
         -- Plus-to-space FIRST, then percent-decoding. The other way round turns
         -- an encoded plus (%2B) into a literal + and then into a space, which is
-        -- silent corruption. Nothing Spotify sends us contains either — the
-        -- code and state are both base64url — so this is correctness rather
+        -- silent corruption. Nothing Spotify sends us contains either â€” the
+        -- code and state are both base64url â€” so this is correctness rather
         -- than a fix for anything observed.
         params[key] = value:gsub("%+", " "):gsub("%%(%x%x)", function(h)
             return string.char(tonumber(h, 16))
@@ -532,12 +532,12 @@ end
 --
 -- The token is kept in `db`, which Neverlose stores in the cloud against the
 -- account rather than in a file. There is therefore no config file anyone can
--- hand over by accident — but whether Neverlose's own config sharing carries
+-- hand over by accident â€” but whether Neverlose's own config sharing carries
 -- `db` along with menu values is undocumented, and this is going out publicly.
 --
 -- So the token is encrypted under a key derived from the machine it was
 -- authorised on. A copy that reaches anyone else decrypts to nothing, fails its
--- check, and is discarded — they are asked to connect their own account, which
+-- check, and is discarded â€” they are asked to connect their own account, which
 -- is exactly what should happen. The Client ID is left in the clear: it is
 -- public by design in PKCE, and keeping it means a new machine needs a
 -- reconnect rather than a re-setup.
@@ -649,7 +649,7 @@ if rawget(_G, "__spotify_test") then rawget(_G, "__spotify_test").seal = SEAL en
 -- Copied into a FRESH table rather than mutating what db handed back. A store
 -- backed by Lua tables returns a live reference, so writing the opened token
 -- into it puts the plaintext straight back into storage and undoes the sealing
--- entirely — and when the seal does not open, writing nil there destroys the
+-- entirely â€” and when the seal does not open, writing nil there destroys the
 -- stored token without anyone asking.
 local auth = {}
 
@@ -729,7 +729,7 @@ local function fetch_profile()
             -- absent means "we didn't ask", NOT "not premium". Saying otherwise
             -- would tell a Premium user their controls won't work.
             if session.product == nil then
-                log("tier not reported Ã¢â‚¬â€ reconnect to pick up the user-read-private scope")
+                log("tier not reported ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â reconnect to pick up the user-read-private scope")
             elseif session.product ~= "premium" then
                 log("NOTE: playback CONTROLS need Premium. Track info will still show.")
             end
@@ -752,7 +752,7 @@ end
 --
 -- Spotify ROTATES the refresh token: each refresh consumes the old one. Two
 -- overlapping refreshes therefore present the same spent token, and the loser
--- comes back invalid_grant — indistinguishable from a real revocation, so the
+-- comes back invalid_grant â€” indistinguishable from a real revocation, so the
 -- handler below clears the stored login. Being logged out because two requests
 -- overlapped is not a tolerable failure.
 --
@@ -851,7 +851,7 @@ local function exchange(code, verifier)
             end
 
             apply_token(parsed)
-            log("CONNECTED Ã¢â‚¬â€ refresh token stored")
+            log("CONNECTED ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â refresh token stored")
             fetch_profile()
         end)
 end
@@ -916,7 +916,7 @@ local function connect()
         end
 
         if not pending or params.state ~= pending.state then
-            log("state mismatch Ã¢â‚¬â€ ignoring this callback")
+            log("state mismatch ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â ignoring this callback")
             pending = nil
             return
         end
@@ -943,7 +943,7 @@ local function connect()
         "&scope=", urlencode(SCOPES),
     })
 
-    log("opening Spotify Ã¢â‚¬â€ approve in your browser")
+    log("opening Spotify ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â approve in your browser")
     if not open_url(url) then
         stop_listener()
         pending = nil
@@ -962,7 +962,7 @@ local function disconnect()
     session.display_name = nil
     session.product = nil
     stop_listener()
-    log("disconnected Ã¢â‚¬â€ refresh token cleared")
+    log("disconnected ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â refresh token cleared")
 end
 
 --------------------------------------------------------------------------------
@@ -1014,7 +1014,7 @@ local function bridge_ready()
 
     if not ok or result == nil then
         Bridge.broken = true
-        log("panorama bridge unavailable Ã¢â‚¬â€ controls disabled")
+        log("panorama bridge unavailable ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â controls disabled")
         return false
     end
 
@@ -1057,8 +1057,8 @@ local function bridge_pump()
 
         -- Guarded because this runs at the top of every frame. If the Panorama
         -- side is ever torn down under us, an unprotected call here would throw
-        -- once a frame forever and take the whole render callback — and so the
-        -- entire player — down with it.
+        -- once a frame forever and take the whole render callback â€” and so the
+        -- entire player â€” down with it.
         local read, state = pcall(Bridge.js.get, request.id)
         if not read then state = nil end
 
@@ -1073,7 +1073,7 @@ local function bridge_pump()
 
         -- Abandoned after comfortably longer than the request's own 15s
         -- timeout. Without this, anything the bridge never reports on stays in
-        -- the list for the rest of the session — walked every single frame, and
+        -- the list for the rest of the session â€” walked every single frame, and
         -- growing with every control press. A `state` of nil is the same story:
         -- there is nothing left to wait for.
         elseif (now - (request.at or 0)) > 30000 then
@@ -1096,7 +1096,7 @@ local player = {
     release = "",
     art_url = nil,
     art_px = 0,           -- pixel width of art_url, for load_image
-    art_alts = {},        -- smaller sizes to fall back to, best first
+    art_choices = {},     -- every size the API offered, preferred first
     progress_ms = 0,
     duration_ms = 0,
     fetched_at = 0,       -- common.get_timestamp(), milliseconds
@@ -1172,7 +1172,7 @@ local function apply_state(state)
         -- Drop the cover too, or the last track's artwork keeps showing behind
         -- the "nothing playing" message.
         player.art_url = nil
-        player.art_alts = {}
+        player.art_choices = {}
         return
     end
 
@@ -1206,12 +1206,30 @@ local function apply_state(state)
     player.volume = tonumber(device.volume_percent) or 0
     player.device = device.name or ""
 
+    -- The whole ordered list is kept and art_texture reads it. `art_url` is the
+    -- preferred size, and doubles as the track's identity for the cover
+    -- cross-fade â€” which is why it must not be rewritten when a size fails.
     local choices = pick_art(album.images or item.images or show.images)
-    local best = table.remove(choices, 1)
 
-    player.art_url  = best and best.url or nil
-    player.art_px   = best and best.px or 0
-    player.art_alts = choices
+    player.art_choices = choices
+    player.art_url     = choices[1] and choices[1].url or nil
+    player.art_px      = choices[1] and choices[1].px or 0
+
+    -- Behind Debug logging. Says whether the track offered any artwork at all,
+    -- which is the one thing a silent blank cover cannot tell you apart from a
+    -- fetch that is failing.
+    if player.art_url ~= player.art_logged then
+        player.art_logged = player.art_url
+
+        local sizes = {}
+        for _, c in ipairs(choices) do sizes[#sizes + 1] = tostring(c.px) end
+
+        log(("art: %s offers %d size(s) [%s] %s"):format(
+            tostring(item.name):sub(1, 28),
+            #choices,
+            table.concat(sizes, ","),
+            tostring(player.art_url)), true)
+    end
 end
 
 --------------------------------------------------------------------------------
@@ -1232,8 +1250,8 @@ local POLL_IDLE    = 10.0
 -- network API hands us only a response body, so the `Retry-After` header is not
 -- visible; the interval doubles instead, and the first success clears it.
 --
--- Normal use is nowhere near the limit — one request every 3 seconds against a
--- rolling 30-second window — but a script reload leaves the old chain running
+-- Normal use is nowhere near the limit â€” one request every 3 seconds against a
+-- rolling 30-second window â€” but a script reload leaves the old chain running
 -- for a moment, and several reloads in a row can stack up enough to trip it.
 local poll_penalty = 0
 local POLL_PENALTY_MAX = 60
@@ -1241,7 +1259,7 @@ local POLL_PENALTY_MAX = 60
 -- `once` fetches without re-arming.
 --
 -- Skipping a track wants an immediate catch-up read, and without this flag that
--- one-shot re-armed itself into a SECOND permanent poll chain — one more per
+-- one-shot re-armed itself into a SECOND permanent poll chain â€” one more per
 -- skip, each doubling down on the request rate until Spotify starts answering
 -- 429. The generation counter cannot help: the extra chains share the current
 -- generation, so they look entirely legitimate.
@@ -1259,7 +1277,7 @@ local function poll_once(generation, once)
                 if body == nil or body == "" then
                     player.ok = false
                     player.art_url = nil   -- else the last cover lingers
-                    player.art_alts = {}
+                    player.art_choices = {}
                     last_poll_error = nil
                     return
                 end
@@ -1461,7 +1479,7 @@ end
 
 -- art_texture() runs from the draw path, i.e. every frame. The first version
 -- re-requested on every cache miss, so a single failed fetch became a request
--- per frame â€” a hundred a second, until the CDN throttled us and every
+-- per frame Ã¢â‚¬â€ a hundred a second, until the CDN throttled us and every
 -- subsequent fetch failed too. That is why art went blank and stayed blank
 -- after a long session.
 --
@@ -1478,25 +1496,363 @@ local art_ready = nil         -- { url, data, px } waiting to be turned into a t
 
 local art_failures = {}       -- url -> { count, next_try }
 
+--------------------------------------------------------------------------------
+-- baseline greyscale JPEG decoder
+--
+-- render.load_image cannot draw single-component JPEGs. It does not report that
+-- as a failure either: it hands back an ordinary-looking texture that renders as
+-- nothing. Spotify serves black-and-white covers this way, so one album in a
+-- playlist is enough to look like a broken script.
+--
+-- The only route to arbitrary pixels is render.load_image_rgba, which wants a
+-- raw RGBA buffer â€” so the decoding has to happen here. This handles exactly the
+-- case that is broken and nothing more: baseline (SOF0), 8-bit, one component.
+-- Everything else is left to load_image, which handles it perfectly well.
+--
+-- Verified against a real Spotify cover decoded by System.Drawing; see the
+-- fixture test in the harness.
+--------------------------------------------------------------------------------
+
+local JPEG = {}
+
+-- Zig-zag position -> natural position, both 1-based.
+JPEG.ZIGZAG = {
+     1, 2, 9,17,10, 3, 4,11,18,25,33,26,19,12, 5, 6,
+    13,20,27,34,41,49,42,35,28,21,14, 7, 8,15,22,29,
+    36,43,50,57,58,51,44,37,30,23,16,24,31,38,45,52,
+    59,60,53,46,39,32,40,47,54,61,62,55,48,56,63,64,
+}
+
+-- K[u][x] folds the normalisation constant into the cosine, so each IDCT pass
+-- is a plain dot product.
+JPEG.K = (function()
+    local k = {}
+    for u = 0, 7 do
+        k[u] = {}
+        local c = (u == 0) and math.sqrt(0.5) or 1
+        for x = 0, 7 do
+            k[u][x] = 0.5 * c * math.cos(((2 * x + 1) * u * math.pi) / 16)
+        end
+    end
+    return k
+end)()
+
+-- RGBA bytes for each grey level, so expanding the plane is a lookup per pixel
+-- rather than three string.char calls.
+JPEG.RGBA = (function()
+    local t = {}
+    for v = 0, 255 do t[v] = string.char(v, v, v, 255) end
+    return t
+end)()
+
+-- Number of colour components in a JPEG, or nil if it cannot be read.
+--
+-- One component means greyscale, and render.load_image cannot draw those: it
+-- returns a perfectly ordinary-looking texture object that renders as nothing.
+-- Spotify serves black-and-white covers this way, so this is not exotic â€” one
+-- album in a playlist is enough to look like a bug.
+--
+-- Walks segment by segment using each header's own length, which is what keeps
+-- it out of the entropy-coded data where stray FF bytes live.
+function JPEG.components(data)
+    if #data < 4 or data:byte(1) ~= 0xFF or data:byte(2) ~= 0xD8 then return nil end
+
+    local i = 3
+    while i < #data - 9 do
+        if data:byte(i) ~= 0xFF then
+            i = i + 1
+        else
+            local marker = data:byte(i + 1)
+
+            if marker == 0xD8 or marker == 0x01 or (marker >= 0xD0 and marker <= 0xD7) then
+                i = i + 2
+            elseif marker == 0xDA then
+                return nil          -- start of scan, and no frame header seen
+            else
+                -- SOF0..SOF15, excluding the three that are not frame headers.
+                if marker >= 0xC0 and marker <= 0xCF
+                    and marker ~= 0xC4 and marker ~= 0xC8 and marker ~= 0xCC then
+                    return data:byte(i + 9)
+                end
+
+                i = i + 2 + ((data:byte(i + 2) * 256) + data:byte(i + 3))
+            end
+        end
+    end
+
+    return nil
+end
+
+function JPEG.huffman(counts, values)
+    local lookup, code, k = {}, 0, 1
+
+    for length = 1, 16 do
+        lookup[length] = {}
+        for _ = 1, counts[length] do
+            lookup[length][code] = values[k]
+            code, k = code + 1, k + 1
+        end
+        code = code * 2
+    end
+
+    return lookup
+end
+
+-- Returns an RGBA buffer, width and height, or nil plus a reason.
+function JPEG.decode(data)
+    local quant, huff_dc, huff_ac = {}, {}, {}
+    local width, height, restart_interval = 0, 0, 0
+    local comp_id, comp_quant, comp_dc, comp_ac = nil, 0, 0, 0
+
+    local at = 3
+    if data:byte(1) ~= 0xFF or data:byte(2) ~= 0xD8 then return nil, "not a JPEG" end
+
+    -- Header pass. Every segment carries its own length, which is what keeps
+    -- this out of the entropy-coded bytes where stray FFs live.
+    while at < #data - 3 do
+        if data:byte(at) ~= 0xFF then at = at + 1
+        else
+            local marker = data:byte(at + 1)
+
+            if marker == 0x01 or (marker >= 0xD0 and marker <= 0xD8) then
+                at = at + 2
+            else
+                local length = (data:byte(at + 2) * 256) + data:byte(at + 3)
+                local body = at + 4
+
+                if marker == 0xDB then                      -- quantisation tables
+                    local stop = at + 2 + length
+                    while body < stop do
+                        local spec = data:byte(body)
+                        if math.floor(spec / 16) ~= 0 then return nil, "16-bit quant table" end
+
+                        local table_ = {}
+                        for i = 1, 64 do table_[JPEG.ZIGZAG[i]] = data:byte(body + i) end
+                        quant[spec % 16] = table_
+                        body = body + 65
+                    end
+
+                elseif marker == 0xC4 then                  -- huffman tables
+                    local stop = at + 2 + length
+                    while body < stop do
+                        local spec = data:byte(body)
+                        local counts, total = {}, 0
+
+                        for i = 1, 16 do
+                            counts[i] = data:byte(body + i)
+                            total = total + counts[i]
+                        end
+
+                        local values = {}
+                        for i = 1, total do values[i] = data:byte(body + 16 + i) end
+
+                        local built = JPEG.huffman(counts, values)
+                        if math.floor(spec / 16) == 0 then huff_dc[spec % 16] = built
+                        else huff_ac[spec % 16] = built end
+
+                        body = body + 17 + total
+                    end
+
+                elseif marker == 0xC0 or marker == 0xC1 then   -- baseline frame
+                    if data:byte(body) ~= 8 then return nil, "not 8-bit" end
+
+                    height = (data:byte(body + 1) * 256) + data:byte(body + 2)
+                    width  = (data:byte(body + 3) * 256) + data:byte(body + 4)
+
+                    if data:byte(body + 5) ~= 1 then return nil, "not single-component" end
+
+                    comp_id = data:byte(body + 6)
+                    comp_quant = data:byte(body + 8)
+
+                elseif marker == 0xDD then                  -- restart interval
+                    restart_interval = (data:byte(body) * 256) + data:byte(body + 1)
+
+                elseif marker == 0xDA then                  -- start of scan
+                    if data:byte(body) ~= 1 then return nil, "interleaved scan" end
+                    comp_dc = math.floor(data:byte(body + 2) / 16)
+                    comp_ac = data:byte(body + 2) % 16
+                    at = at + 2 + length
+                    break
+
+                elseif marker >= 0xC2 and marker <= 0xCF and marker ~= 0xC4 and marker ~= 0xC8 then
+                    return nil, "not baseline"
+                end
+
+                at = at + 2 + length
+            end
+        end
+    end
+
+    if width == 0 or comp_id == nil then return nil, "no frame header" end
+
+    local qt = quant[comp_quant]
+    local dc_table, ac_table = huff_dc[comp_dc], huff_ac[comp_ac]
+    if qt == nil or dc_table == nil or ac_table == nil then return nil, "missing tables" end
+
+    ----------------------------------------------------------------------------
+    -- entropy-coded data
+    ----------------------------------------------------------------------------
+
+    local bitbuf, bitcount, ended = 0, 0, false
+
+    local function bit_read()
+        if bitcount == 0 then
+            if at > #data then ended = true; return 0 end
+
+            local byte = data:byte(at)
+            at = at + 1
+
+            if byte == 0xFF then
+                local next_byte = data:byte(at)
+                if next_byte == 0 then at = at + 1
+                elseif next_byte ~= nil and next_byte >= 0xD0 and next_byte <= 0xD7 then
+                    -- A restart marker reached mid-read means the scan is out of
+                    -- step; the caller resynchronises rather than reading on.
+                    ended = true; return 0
+                else
+                    ended = true; return 0
+                end
+            end
+
+            bitbuf, bitcount = byte, 8
+        end
+
+        bitcount = bitcount - 1
+        return bit.band(bit.rshift(bitbuf, bitcount), 1)
+    end
+
+    local function huff_read(lookup)
+        local code, length = 0, 0
+
+        for _ = 1, 16 do
+            code = (code * 2) + bit_read()
+            length = length + 1
+
+            local row = lookup[length]
+            local value = row and row[code]
+            if value ~= nil then return value end
+
+            if ended then return nil end
+        end
+
+        return nil
+    end
+
+    local function receive_extend(count)
+        if count == 0 then return 0 end
+
+        local value = 0
+        for _ = 1, count do value = (value * 2) + bit_read() end
+
+        -- Values below the midpoint of the range are negative.
+        if value < (2 ^ (count - 1)) then return value - (2 ^ count) + 1 end
+        return value
+    end
+
+    local cols, rows = math.ceil(width / 8), math.ceil(height / 8)
+    local plane = {}
+    local coeffs, block = {}, {}
+    local predictor, since_restart = 0, 0
+
+    for row = 0, rows - 1 do
+        for col = 0, cols - 1 do
+            if restart_interval > 0 and since_restart == restart_interval then
+                -- Byte-align, step over the marker, reset the DC predictor.
+                bitcount = 0
+                while at < #data and not (data:byte(at) == 0xFF
+                    and data:byte(at + 1) ~= nil
+                    and data:byte(at + 1) >= 0xD0 and data:byte(at + 1) <= 0xD7) do
+                    at = at + 1
+                end
+                at = at + 2
+                predictor, since_restart, ended = 0, 0, false
+            end
+
+            for i = 1, 64 do coeffs[i] = 0 end
+
+            local size = huff_read(dc_table)
+            if size == nil then size = 0 end
+
+            predictor = predictor + receive_extend(size)
+            coeffs[1] = predictor * qt[1]
+
+            local index = 2
+            while index <= 64 do
+                local symbol = huff_read(ac_table)
+                if symbol == nil then break end
+
+                local run, magnitude = math.floor(symbol / 16), symbol % 16
+
+                if magnitude == 0 then
+                    if run ~= 15 then break end     -- end of block
+                    index = index + 16
+                else
+                    index = index + run
+                    if index > 64 then break end
+
+                    local natural = JPEG.ZIGZAG[index]
+                    coeffs[natural] = receive_extend(magnitude) * qt[natural]
+                    index = index + 1
+                end
+            end
+
+            since_restart = since_restart + 1
+
+            -- Rows first, then columns; separable, so 8x8 twice rather than 64x64.
+            for y = 0, 7 do
+                local base = y * 8
+                for x = 0, 7 do
+                    local sum = 0
+                    for u = 0, 7 do
+                        local c = coeffs[base + u + 1]
+                        if c ~= 0 then sum = sum + (c * JPEG.K[u][x]) end
+                    end
+                    block[base + x + 1] = sum
+                end
+            end
+
+            for x = 0, 7 do
+                for y = 0, 7 do
+                    local sum = 0
+                    for v = 0, 7 do
+                        sum = sum + (block[(v * 8) + x + 1] * JPEG.K[v][y])
+                    end
+
+                    local px = (col * 8) + x
+                    local py = (row * 8) + y
+
+                    if px < width and py < height then
+                        local level = math.floor(sum + 128.5)
+                        if level < 0 then level = 0 elseif level > 255 then level = 255 end
+                        plane[(py * width) + px + 1] = JPEG.RGBA[level]
+                    end
+                end
+            end
+        end
+    end
+
+    return table.concat(plane), width, height
+end
+
+if rawget(_G, "__spotify_test") then rawget(_G, "__spotify_test").jpeg = JPEG end
+
 local function art_note_failure(url, why)
     local record = art_failures[url] or { count = 0 }
     record.count = record.count + 1
     record.next_try = common.get_timestamp() + (ART.RETRY_MS * record.count)
     art_failures[url] = record
 
+    -- Every attempt, not just the last. Only logging once the burst was spent
+    -- meant the first two failures were silent, which is precisely the window
+    -- where a cover that never appears looks like nothing happened at all.
+    log(("art: attempt %d failed (%s)"):format(record.count, why), true)
+
     if record.count < ART.MAX_ATTEMPTS then return end
 
-    -- Burst spent. Step down to a smaller size if this cover has one left:
-    -- each size is its own object on the CDN, so the 300 failing says nothing
-    -- about the 64.
-    if player.art_url == url and #player.art_alts > 0 then
-        local alt = table.remove(player.art_alts, 1)
-        player.art_url = alt.url
-        player.art_px  = alt.px
-        log("album art (" .. why .. "), trying the " .. alt.px .. "px copy", true)
-    else
-        log("album art unavailable (" .. why .. "), retrying in a minute", true)
-    end
+    -- Nothing is rewritten on the player here. art_texture picks the best size
+    -- that is not sitting out a cooldown, so recording the failure is enough to
+    -- move it on to the next one.
+    log("album art (" .. why .. "), that size is out for a minute", true)
 end
 
 local function art_may_request(url)
@@ -1555,6 +1911,8 @@ local function request_art(url, px)
     art_inflight = url
     art_inflight_at = common.get_timestamp()
 
+    log(("art: fetching %spx"):format(tostring(px)), true)
+
     network.get(url, {}, function(data)
         if art_inflight == url then art_inflight = nil end
 
@@ -1563,17 +1921,38 @@ local function request_art(url, px)
             return
         end
 
+        log(("art: got %d bytes for %spx"):format(#data, tostring(px)), true)
         art_ready = { url = url, data = data, px = px }
     end)
 end
 
+-- The texture for the current track, from whichever size is actually available.
+--
+-- The candidate list is read, never rewritten. Falling back used to work by
+-- writing the chosen size onto the player â€” and apply_state rebuilds those
+-- fields from the API on every poll, so the fallback was undone within three
+-- seconds while the preferred size sat out its cooldown. The cover stayed blank
+-- for the full minute even though a perfectly good 64px copy was sitting there.
 local function art_texture()
-    if player.art_url == nil then return nil end
+    local choices = player.art_choices
+    if choices == nil or #choices == 0 then return nil end
 
-    local hit = art_cache[player.art_url]
-    if hit ~= nil then return hit end
+    -- Anything already decoded, in preference order.
+    for _, choice in ipairs(choices) do
+        local hit = art_cache[choice.url]
+        if hit ~= nil then return hit end
+    end
 
-    request_art(player.art_url, player.art_px)
+    -- Otherwise fetch the best one that is not cooling off. Requesting the
+    -- preferred size while it is already in flight is a no-op, so this does not
+    -- skip ahead to a smaller copy while the good one is still coming.
+    for _, choice in ipairs(choices) do
+        if art_may_request(choice.url) then
+            request_art(choice.url, choice.px)
+            return nil
+        end
+    end
+
     return nil
 end
 
@@ -1582,7 +1961,7 @@ end
 --
 -- The `u` flag ("extra symbol support") is documented only on the vector-size
 -- overload, and track titles are frequently non-Latin. Nothing in the reference
--- dump uses it, so there is no precedent Ã¢â‚¬â€ hence the fallback chain.
+-- dump uses it, so there is no precedent ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â hence the fallback chain.
 --
 -- Font families are chosen from ones actually seen in shipped scripts; Segoe UI
 -- appears in none of them and is not safe to assume.
@@ -1595,7 +1974,7 @@ end
 -- load_font accepts a filesystem path, so we can reach for faces that actually
 -- carry the glyphs instead of hoping a family name resolves to one that does.
 --
---   seguisym  Segoe UI Symbol â€” musical notes, arrows, dingbats
+--   seguisym  Segoe UI Symbol Ã¢â‚¬â€ musical notes, arrows, dingbats
 --   segoeui   broad Latin/Cyrillic/Greek coverage
 --   msgothic  CJK, for Japanese and Chinese titles
 --
@@ -1686,7 +2065,7 @@ end
 
 -- Every icon is straight lines only: M, L, Z. No arcs, no curves.
 --
--- Spotify's own paths render lopsided here â€” the rasteriser mangles arc
+-- Spotify's own paths render lopsided here Ã¢â‚¬â€ the rasteriser mangles arc
 -- commands (shuffle, repeat and speaker came out as angular blobs) and even the
 -- mostly-polygonal ones came out asymmetric. Rather than keep guessing at which
 -- subset it handles, these are authored so there is nothing left to get wrong.
@@ -1704,10 +2083,10 @@ end
 -- renders FontAwesome in its own menu, but that font isn't on disk for us to
 -- load. Segoe MDL2 Assets is, on every Windows 10/11 install, and it carries
 -- purpose-built transport controls. Glyphs are vector, hinted, and symmetric by
--- construction â€” none of which was true of anything we fed the SVG rasteriser.
+-- construction Ã¢â‚¬â€ none of which was true of anything we fed the SVG rasteriser.
 -- Only the shapes that are genuinely hard to draw come from the font. MDL2's
 -- transport glyphs are hollow line art, and play/pause/prev/next want to be
--- solid â€” which is also how Spotify's own set works: those four are filled,
+-- solid Ã¢â‚¬â€ which is also how Spotify's own set works: those four are filled,
 -- while shuffle and repeat are stroked.
 --
 -- Anything absent here falls through to the drawn polygon, which for a triangle
@@ -1779,7 +2158,7 @@ local function glyph(name, fallback)
             -- icon-font glyph sits entirely above the baseline, so the box
             -- carries descender space the glyph never occupies. Centring on it
             -- lifts every icon visibly. The fraction below centres the ink
-            -- instead, and is calibrated by eye â€” adjust it here if the icons
+            -- instead, and is calibrated by eye Ã¢â‚¬â€ adjust it here if the icons
             -- ever sit high or low again.
             local height = s * 2.1
             -- Flags slot passed explicitly; the two-argument form measures
@@ -2088,7 +2467,7 @@ end
 --
 -- It ships as a colour PALETTE plus one index per pixel, not as a JPEG, because
 -- the hue has to be adjustable. render.texture's colour argument multiplies,
--- and multiply cannot rotate a hue — it scales toward the given colour, so
+-- and multiply cannot rotate a hue â€” it scales toward the given colour, so
 -- white becomes that colour and anything already coloured collapses toward
 -- black. That is a mask, not a recolour.
 --
@@ -2096,7 +2475,7 @@ end
 -- built here instead. Only the few hundred palette entries get rotated; the
 -- 16k pixels are then a lookup each. In HSV a hue rotation leaves saturation
 -- and value alone, which is exactly why white stays white and black stays
--- black — neither has a hue for it to act on.
+-- black â€” neither has a hue for it to act on.
 --
 -- To replace it: drop a square image in lua/placeholders and run
 -- lua/embed_placeholders.ps1, which regenerates the data block below.
@@ -2166,7 +2545,7 @@ end
 -- The texture for a given hue shift, nil if it cannot be built.
 --
 -- Cached per shift, because the HUD player and the menu bar can be set to
--- different hues and this runs from the draw path — rebuilding on every frame
+-- different hues and this runs from the draw path â€” rebuilding on every frame
 -- because the two surfaces disagree would be ruinous. The cache is capped, so
 -- dragging the slider cannot accumulate textures without limit.
 function PH.image(shift)
@@ -2224,7 +2603,7 @@ end
 if rawget(_G, "__spotify_test") then rawget(_G, "__spotify_test").placeholders = PH end
 
 --------------------------------------------------------------------------------
--- PLACEHOLDER DATA — generated by lua/embed_placeholders.ps1, do not hand-edit.
+-- PLACEHOLDER DATA â€” generated by lua/embed_placeholders.ps1, do not hand-edit.
 -- 128px, 256-colour palette plus one index a pixel, base64, wrapped.
 --------------------------------------------------------------------------------
 
@@ -2432,8 +2811,8 @@ BAQEAgQEBAQEBAQEBwcH]]
 --
 -- The string is drawn twice with a gap between the passes, so the loop reads as
 -- a repeat rather than snapping back at the end. Overflow is hidden by the clip
--- rect the caller has already pushed â€” every call site clips its text column
--- anyway â€” so this only has to decide the offset.
+-- rect the caller has already pushed Ã¢â‚¬â€ every call site clips its text column
+-- anyway Ã¢â‚¬â€ so this only has to decide the offset.
 local function flowing_text(font, x, y, limit, tint, text)
     local room = limit - x
 
@@ -2441,7 +2820,7 @@ local function flowing_text(font, x, y, limit, tint, text)
     --
     -- render.measure_text is (font, [flags], text). Handed only two arguments
     -- the binding cannot tell the flags slot from the string, and the width
-    -- comes back as zero — which reads as "this already fits" and is exactly
+    -- comes back as zero â€” which reads as "this already fits" and is exactly
     -- why long titles were being clipped instead of scrolling.
     local width = 0
     local ok, measured = pcall(render.measure_text, font, "", text)
@@ -2478,7 +2857,7 @@ end
 --
 -- Two problems being solved together. A new track sets a new art URL some
 -- hundreds of milliseconds before that image has downloaded, and the cover slot
--- fell back to the placeholder for exactly that long — a flash of the NL logo
+-- fell back to the placeholder for exactly that long â€” a flash of the NL logo
 -- between every song. And when the image did arrive it replaced the old one in
 -- a single frame.
 --
@@ -2490,7 +2869,7 @@ local COVER = { shown = nil, prev = nil, url = nil, at = 0, gap = 0, ms = 260 }
 -- fade has got.
 --
 -- The outgoing cover is drawn fully opaque and the incoming one over it at
--- rising alpha, which composites to new*t + old*(1-t) — a true cross-fade.
+-- rising alpha, which composites to new*t + old*(1-t) â€” a true cross-fade.
 -- Fading both toward transparent instead would let the panel background show
 -- through the middle of every transition.
 local function cover_frames(idle_hue)
@@ -2514,6 +2893,11 @@ local function cover_frames(idle_hue)
             COVER.shown = ready
             COVER.url = player.art_url
             COVER.at = now
+
+            -- Says a texture actually reached the screen. A cover that is
+            -- fetched and decoded but never shown looks identical in the log to
+            -- one that was simply never fetched.
+            log("art: now showing " .. tostring(player.art_url):sub(-12), true)
         end
     end
 
@@ -2686,7 +3070,7 @@ local function draw_minimal(origin, ctx, theme, scale, max_width, opts, f)
     end
 
     -- Hairline along the bottom edge, spanning the full panel. The track itself
-    -- is transparent, so only the filled portion shows â€” a bar that stopped at
+    -- is transparent, so only the filled portion shows Ã¢â‚¬â€ a bar that stopped at
     -- 55% of the width made a finished song look half played.
     progress_bar(ctx, origin.x, origin.y + H - (4 * scale), origin.x + W, 4 * scale,
         theme.bar1, theme.bar2, color(0, 0, 0, 0))
@@ -2742,7 +3126,7 @@ local function draw_menubar(ctx, theme, opts, f)
 
     -- Both rails stop at the same x so the volume bar and the progress bar line
     -- up. The speaker then sits out in the margin the remaining-time text
-    -- occupies on the row below â€” far enough that the bar's end never runs into
+    -- occupies on the row below Ã¢â‚¬â€ far enough that the bar's end never runs into
     -- it, which it did when the icon sat only 16px clear.
     --
     -- With duration switched off that margin is zero, and the speaker was
@@ -3058,7 +3442,7 @@ UI.opt_clantag = misc:switch("Enable", false)
 --
 -- Named as well as listed. The comparisons used to be against src_options[1]
 -- and [2], which is the kind of positional coupling that silently inverts the
--- moment the list is reordered — as it is here, to make the signature the
+-- moment the list is reordered â€” as it is here, to make the signature the
 -- default choice.
 UI.SRC_SIGNATURE   = "Spotify.lua"
 UI.SRC_TRACK       = "Now playing"
@@ -3204,8 +3588,8 @@ end
 -- hand over the controls.
 --
 -- `accent` is the bright end of the progress gradient, not the dark end. It
--- tints the transport icons and the volume fill, so taking it from bar1 — which
--- is the near-black start of the gradient — made them almost invisible.
+-- tints the transport icons and the volume fill, so taking it from bar1 â€” which
+-- is the near-black start of the gradient â€” made them almost invisible.
 
 local function hud_theme()
     if UI.col_custom:get() then
@@ -3270,7 +3654,7 @@ end
 --
 -- "\aRRGGBB" before a character sets its colour, so a gradient is built one
 -- character at a time and the whole string handed to ui.sidebar. Sweeping the
--- phase with the clock and re-calling ui.sidebar animates it â€” the same
+-- phase with the clock and re-calling ui.sidebar animates it Ã¢â‚¬â€ the same
 -- approach the shipped scripts use for their own sidebar entries.
 --------------------------------------------------------------------------------
 
@@ -3343,8 +3727,8 @@ end
 
 -- The game caps clan tags in BYTES, not characters, and truncates without
 -- regard for encoding. A multibyte character cut in half is invalid UTF-8 and
--- renders as a replacement diamond â€” which is why a tag containing "â™«" (3
--- bytes) or "Ã¡" (2) breaks while scrolling but looks fine on its own.
+-- renders as a replacement diamond Ã¢â‚¬â€ which is why a tag containing "Ã¢â„¢Â«" (3
+-- bytes) or "ÃƒÂ¡" (2) breaks while scrolling but looks fine on its own.
 --
 -- So the last thing that happens to any tag is dropping whole characters until
 -- it fits the byte budget.
@@ -3369,7 +3753,7 @@ end
 --
 -- The latency term that used to be added here has been removed. Everyone on a
 -- server is simulating the same tick stream, so their tickcounts already agree
--- to within a tick or two — around 15-30ms. Adding each client's own ping put
+-- to within a tick or two â€” around 15-30ms. Adding each client's own ping put
 -- the *difference* between their pings back into the result, which on a mixed
 -- lobby is far larger than the error it was meant to correct. At 6 fps a frame
 -- lasts 166ms, so untouched tick numbers land everyone on the same frame and
@@ -3403,7 +3787,7 @@ local function shared_frame(fps)
 
         -- A valid tickinterval is not proof the clock is running. In the main
         -- menu, on the loading screen and while disconnected, tickinterval
-        -- stays perfectly valid while tickcount sits still — so this branch was
+        -- stays perfectly valid while tickcount sits still â€” so this branch was
         -- returning a constant and the tag froze mid-scroll. Only trust the
         -- server clock while it is demonstrably moving.
         if (now - tick_clock.at) < 1000 then
@@ -3433,8 +3817,8 @@ TAG.SIGNATURE = "Spotify.lua"
 TAG.NOTE = "\u{266B} "
 
 -- The signature tag is a hand-authored frame table, the way Neverlose's own is.
--- Each new character arrives in leet form and then resolves â€” 5 becomes s, 0
--- becomes o, |= becomes f â€” which reads as the word assembling itself rather
+-- Each new character arrives in leet form and then resolves Ã¢â‚¬â€ 5 becomes s, 0
+-- becomes o, |= becomes f Ã¢â‚¬â€ which reads as the word assembling itself rather
 -- than as a plain typewriter.
 --
 -- Deliberately NOT configurable. Everyone running the script has to be on the
@@ -3518,7 +3902,7 @@ local function clantag_text()
     else body = player.title .. " - " .. player.artist end
 
     -- The note marks where each pass begins, so the loop reads as
-    -- "â™« artist - song      â™« artist - song" rather than one run-on string.
+    -- "Ã¢â„¢Â« artist - song      Ã¢â„¢Â« artist - song" rather than one run-on string.
     return TAG.NOTE .. body, true
 end
 
@@ -3531,11 +3915,11 @@ local function scroll_text(text, width, frame)
     if n == 0 then return "" end
 
     -- Short titles scroll too. There used to be an early return here for
-    -- anything that already fitted the window, which is why "♫ 6 For 6" sat
+    -- anything that already fitted the window, which is why "â™« 6 For 6" sat
     -- perfectly still while the frame counter ticked happily along underneath
     -- it: nine characters into a fifteen-character window, so it never entered
     -- the scrolling path at all. The pass is meant to read the same either way
-    -- — lead in, run through, clear out, blank beat, repeat.
+    -- â€” lead in, run through, clear out, blank beat, repeat.
 
     -- The title runs through the window, off the far side, and then the
     -- tag sits completely empty for a beat before the note leads the next pass
@@ -3543,7 +3927,7 @@ local function scroll_text(text, width, frame)
     --
     -- The window only reads as empty once it fits entirely inside the run of
     -- spaces, so the gap has to be wider than the window itself. width + 2
-    -- gives three fully blank frames â€” enough to register as a break, short
+    -- gives three fully blank frames Ã¢â‚¬â€ enough to register as a break, short
     -- enough not to look like the tag broke.
     local gap = width + 2
 
@@ -3565,7 +3949,7 @@ local function update_clantag()
     if not UI.opt_clantag:get() then
         -- Compared against "" rather than nil on purpose. `clantag_shown` starts
         -- as nil on every script load, so the old test skipped the clear
-        -- whenever the script had not set a tag *this* session — which is
+        -- whenever the script had not set a tag *this* session â€” which is
         -- exactly the case after a reload. A tag left behind by the previous
         -- session then stayed on screen forever, and turning the clantag off or
         -- reloading did nothing to shift it.
@@ -3625,11 +4009,34 @@ events.render:set(function()
         -- Decode at the size we actually fetched. Claiming 640 for a 300px
         -- JPEG allocates a texture four times larger than the pixels in it.
         local px = (ready.px ~= nil and ready.px > 0) and ready.px or 640
-        local ok, image = pcall(render.load_image, ready.data, vector(px, px))
-        if ok and image then
-            cache_art(ready.url, image)
+        -- Checked before decoding, because load_image does not report this as a
+        -- failure: it returns a texture that simply draws nothing. Greyscale
+        -- covers go through our own decoder and in as raw RGBA instead.
+        if JPEG.components(ready.data) == 1 then
+            local pixels, w, h = JPEG.decode(ready.data)
+
+            if pixels == nil then
+                art_note_failure(ready.url, "greyscale decode: " .. tostring(w))
+            else
+                local ok, image = pcall(render.load_image_rgba, pixels, vector(w, h))
+
+                if ok and image then
+                    cache_art(ready.url, image)
+                    log(("art: decoded %dx%d greyscale into a texture"):format(w, h), true)
+                else
+                    art_note_failure(ready.url, "load_image_rgba refused the greyscale buffer")
+                end
+            end
         else
-            art_note_failure(ready.url, "load_image rejected it")
+            local ok, image = pcall(render.load_image, ready.data, vector(px, px))
+
+            if ok and image then
+                cache_art(ready.url, image)
+                log(("art: decoded %spx into a texture"):format(tostring(px)), true)
+            else
+                art_note_failure(ready.url,
+                    "load_image " .. (ok and "returned nothing" or ("threw: " .. tostring(image))))
+            end
         end
     end
 
@@ -3687,7 +4094,7 @@ events.render:set(function()
 
     -- A drag cannot survive the thing being dragged going away. "Hide in main
     -- menu" stops the panel being drawn mid-drag, and the frames in between are
-    -- simply skipped — so on return the first frame would compute a position
+    -- simply skipped â€” so on return the first frame would compute a position
     -- from wherever the mouse had got to and teleport the panel there. Same for
     -- the volume slider when the bar stops drawing.
     if not want_window then drag.active = false end
@@ -3762,9 +4169,9 @@ events.shutdown:set(function()
 end)
 
 if is_connected() then
-    log("connected Ã¢â‚¬â€ enable the player in the menu")
+    log("connected ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â enable the player in the menu")
 else
-    log("not connected Ã¢â‚¬â€ press 'Connect Spotify'")
+    log("not connected ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â press 'Connect Spotify'")
 end
 
 
