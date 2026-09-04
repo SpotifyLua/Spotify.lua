@@ -1,3 +1,5 @@
+# spotify.lua
+
 The Spotify player Lua I used to use ([Neverlose Market](https://neverlose.cc/market/item?id=yrvHej))
 is no longer working, because its authentication/callback server appears to be
 offline.
@@ -83,7 +85,8 @@ inside a script anyone can read.
 You bring your own Client ID rather than sharing a built-in one. A Spotify app
 in Development Mode allows 5 additional users, so a shared key would run out almost
 immediately — and it would make me the single point of failure all over again,
-which is the whole thing this was meant to avoid.
+which is the whole thing this was meant to avoid. It would also put everyone on
+one quota, which is its own problem: see [Quota and rate limits](#quota-and-rate-limits).
 
 After authentication the Lua talks to Spotify's Web API directly for playback
 information and player actions.
@@ -95,6 +98,43 @@ The permissions it holds cover reading and controlling playback and nothing
 else — no email, no password, no payment details.
 
 The exact implementation is in the source for anyone interested in the details.
+
+---
+
+## Quota and rate limits
+
+Spotify enforces two separate limits and both come back as HTTP 429 with the
+same `Too many requests` message. The only thing that distinguishes them is the
+`reason` field in the response body, which the Lua logs.
+
+The **rate limit** is per app, measured over a rolling 30 second window. Backing
+off genuinely fixes it.
+
+The **quota** is the one that bites. It is counted per *developer account*, not
+per app, so every app you create draws on the same pool and making a second one
+changes nothing at all. Endpoints are grouped into buckets that share a limit,
+which is why playback can be refused while the rest of the API keeps answering
+normally. Anyone using your Client ID spends your quota rather than their own,
+so a shared key hits this long before it runs out of user slots — two people is
+enough.
+
+There is nothing to be done about a quota block except wait for it to clear. The
+Lua backs off progressively instead of hammering, up to five minutes between
+attempts, and the player shows `Spotify quota reached, retrying` rather than
+looking identical to nothing playing.
+
+Apps stay in Development Mode permanently. Since May 2025 extended quota mode is
+granted only to organisations with a launched product and at least 250k monthly
+users, so for anything like this the quota is simply a fact of life and the only
+lever is asking for less.
+
+That shapes how the Lua polls. Playback position is extrapolated locally at
+frame rate rather than fetched, so a request is only worth making when something
+might actually have changed: roughly every 10 seconds through the middle of a
+track, tightening to 2 seconds around the moment one is due to end, and 15
+seconds while paused. A three and a half minute track costs about 24 requests
+instead of the 70 a flat 3 second poll would spend, and a track change is
+noticed sooner rather than later.
 
 ---
 
